@@ -1,0 +1,13 @@
+# Secrets
+.env
+
+# Python virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Local environment files
+.env.*
+!.env.example
