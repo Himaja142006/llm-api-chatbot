@@ -26,8 +26,15 @@ client = genai.Client(api_key=api_key)
 # Create FastAPI application
 app = FastAPI(
     title="GenAI Expert Chatbot API",
-    description="An API-powered chatbot using Gemini.",
-    version="1.0.0"
+    description=(
+        "A FastAPI-based chatbot powered by the Google Gemini API. "
+        "The API supports multi-turn conversations using session-based "
+        "conversation history."
+    ),
+    version="1.0.0",
+    contact={
+        "name": "Project Developer",
+    },
 )
 
 # System instructions
@@ -54,13 +61,15 @@ class ChatRequest(BaseModel):
     session_id: str = Field(
         min_length=1,
         max_length=100,
-        description="Unique identifier for the conversation session"
+        description="Unique identifier for the conversation session",
+        examples=["test_user"],
     )
 
     message: str = Field(
         min_length=1,
         max_length=5000,
-        description="User's message to the chatbot"
+        description="User's message to the chatbot",
+        examples=["What is Generative AI?"],
     )
 
 
@@ -72,7 +81,7 @@ def get_ai_response(conversation_text):
         try:
             response = client.models.generate_content(
                 model=model,
-                contents=conversation_text
+                contents=conversation_text,
             )
 
             return response.text
@@ -92,17 +101,20 @@ def get_ai_response(conversation_text):
                 time.sleep(wait_time)
 
             else:
-                # Raise other errors to be handled elsewhere
                 raise error
 
-    # All retry attempts failed
     raise RuntimeError(
         "The AI service is still unavailable after multiple attempts."
     )
 
 
 # Health-check endpoint
-@app.get("/")
+@app.get(
+    "/",
+    tags=["Health"],
+    summary="Check API status",
+    description="Checks whether the GenAI Expert Chatbot API is running.",
+)
 def home():
     return {
         "message": "GenAI Expert Chatbot API is running!"
@@ -110,7 +122,15 @@ def home():
 
 
 # Chat endpoint
-@app.post("/chat")
+@app.post(
+    "/chat",
+    tags=["Chat"],
+    summary="Send a message to the chatbot",
+    description=(
+        "Sends a user message to the chatbot. "
+        "Using the same session_id maintains conversation context."
+    ),
+)
 def chat(request: ChatRequest):
     # Create a new conversation history for a new session
     if request.session_id not in conversation_histories:
@@ -123,7 +143,7 @@ def chat(request: ChatRequest):
     history.append(
         {
             "role": "user",
-            "content": request.message
+            "content": request.message,
         }
     )
 
@@ -144,7 +164,7 @@ def chat(request: ChatRequest):
         history.append(
             {
                 "role": "assistant",
-                "content": chatbot_response
+                "content": chatbot_response,
             }
         )
 
@@ -154,10 +174,9 @@ def chat(request: ChatRequest):
                 history[-MAX_HISTORY_MESSAGES:]
             )
 
-        # Return the response
         return {
             "session_id": request.session_id,
-            "response": chatbot_response
+            "response": chatbot_response,
         }
 
     except Exception as error:
@@ -167,18 +186,23 @@ def chat(request: ChatRequest):
 
         raise HTTPException(
             status_code=500,
-            detail=f"Chatbot error: {str(error)}"
+            detail=f"Chatbot error: {str(error)}",
         )
 
 
 # Clear conversation history for a specific session
-@app.delete("/chat/{session_id}")
+@app.delete(
+    "/chat/{session_id}",
+    tags=["Chat"],
+    summary="Clear a conversation",
+    description="Deletes the stored conversation history for a session.",
+)
 def clear_chat(session_id: str):
     # Check whether the session exists
     if session_id not in conversation_histories:
         raise HTTPException(
             status_code=404,
-            detail="Session not found."
+            detail="Session not found.",
         )
 
     # Delete the conversation history
@@ -186,5 +210,5 @@ def clear_chat(session_id: str):
 
     return {
         "message": "Conversation history cleared successfully.",
-        "session_id": session_id
+        "session_id": session_id,
     }
