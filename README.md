@@ -43,10 +43,11 @@ llm-api-chatbot/
 │   ├── __init__.py
 │   └── main.py
 │
+├── scripts/
+│   ├── chatbot.py
+│   └── test_api.py
 ├── .env
 ├── .env.example
 ├── .gitignore
-├── chatbot.py
 ├── README.md
 ├── requirements.txt
-└── test_api.py
